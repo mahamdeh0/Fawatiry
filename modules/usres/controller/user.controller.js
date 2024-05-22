@@ -6,8 +6,6 @@ const signup = async (req, res) => {
     const { userName, email, password} = req.body;
 
     try {
-      
-
         const user = await userModel.findOne({ email });
         if (user) {
             return res.json({ message: "Email already registered" });

@@ -1,18 +1,20 @@
-require('dotenv').config()
-
-const express = require('express')
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 const connectDB = require('./DB/connection');
-const app = express()
-const port = 3000;
-const indexRouter = require('./modules/index.router')
+
+const app = express();
+const port = process.env.PORT || 3000;
+const indexRouter = require('./modules/index.router');
+
+app.use(cors()); 
 app.use(express.json());
 connectDB();
 
-app.use('/api/v1/users',indexRouter.userRouter);
+app.use('/api/v1/users', indexRouter.userRouter);
 
+app.use('*', (req, res) => {
+    res.status(404).json({ message: "page not found" });
+});
 
-app.use ('*',(req,res)=>{
-
-    res.json({message:"page not found"})
-})
-app.listen(port, () => console.log(`Example app listening on port ${port}!`))
+app.listen(port, () => console.log(`Example app listening on port ${port}!`));
