@@ -3,6 +3,28 @@ var jwt = require('jsonwebtoken');
 const { userModel } = require('../../../DB/model/user.model');
 const { ProductModel } = require('../../../DB/model/Product.model');
 
+function normalizeProductData(product) {
+    return {
+      itemName: product.itemName || '',
+      printedName: product.printedName || 'x',
+      mainBarcode: product.barcode || '',
+      mainContainer: Object.keys(product.containers)[0]|| '',
+      currentCostPrice: product.cost || 0,
+      initialPrice:  0,
+      currentStock: product.currentBalance || 0,
+      currency: 'NIS',
+      tax:  0,
+      taxExempt:  false,
+      containers: Object.entries(product.containers).map(([key, value]) => ({
+        name: key,
+        price: value.sellPrice || 0,
+        quantity:  0,
+        barcodes: (value.barcodes || []).map(code => ({ code }))
+      })),
+      user:"664de2a412cca3cc00885da6"
+    };
+  }
+
 const signup = async (req, res) => {
     const { userName, email, password} = req.body;
 
@@ -52,5 +74,16 @@ const addProduct = async (req, res) => {
       res.status(400).json({ message: error.message });
     }
   };
-
-module.exports = { signin, signup,addProduct };
+  const addProductsArray = async (req, res) => {
+    try {
+        console.log(req.body);
+            const {products} = req.body;
+            const normalizedProducts = products.map(normalizeProductData)
+            await ProductModel.insertMany(normalizedProducts);
+            res.status(200).json(normalizedProducts)
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  };
+ 
+module.exports = {addProductsArray, signin, signup,addProduct };

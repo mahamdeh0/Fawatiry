@@ -13,9 +13,10 @@ const ContainerSchema = new mongoose.Schema({
 });
 
 const ProductSchema = new mongoose.Schema({
+  mainBarcode :{ type: String, required: true },
   itemName: { type: String, required: true },
-  printedName: { type: String, required: true },
-  mainCategory: { type: String, required: true },
+  printedName: { type: String, required: true }, 
+  mainContainer: { type: String, required: true },
   currentCostPrice: { type: String, required: true },
   initialPrice: { type: String },
   currentStock: { type: Number, required: true },
