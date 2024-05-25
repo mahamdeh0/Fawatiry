@@ -23,7 +23,7 @@ const signup = async (req, res) => {
 
 const signin = async (req, res) => {
     const { email, password } = req.body;
-
+    console.log(email)
     try {
         const user = await userModel.findOne({ email });
         if (!user) {
@@ -36,7 +36,7 @@ const signin = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.TokenSignature);
-        res.json({ message: "Logged in successfully", token });
+        res.status(200).json({ message: "Logged in successfully", token,username:user.userName});
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
