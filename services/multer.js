@@ -8,18 +8,22 @@ const HME = (error, req, res, next) => {
   }
 };
 
+
 function myMulter(allowedTypes) {
   const storage = multer.memoryStorage();
   function fileFilter(req, file, cb) {
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only Excel files are allowed"), false);
+      cb(new Error('Only specific file types are allowed'), false);
     }
   }
 
-  const upload = multer({ storage, fileFilter });
-  return upload;
+  return multer({ storage, fileFilter }).single('file');
 }
 
-module.exports = { myMulter, HME };
+
+module.exports = {
+  myMulter: myMulter,
+  HME: HME
+};
