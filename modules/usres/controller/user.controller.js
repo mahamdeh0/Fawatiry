@@ -89,7 +89,7 @@ const addProductsArray = async (req, res) => {
       res.status(400).json({ message: error.message });
     }
 };
-
+  
 function extractContainers(req, res) {
 
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });

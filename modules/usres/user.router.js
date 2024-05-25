@@ -9,4 +9,4 @@ router.post('/AddProducts',auth(),addProduct);
 router.post('/AddProductsArray',auth(),addProductsArray);
 router.post('/upload', myMulter(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel']), HME, extractContainers);
 
-module.exports = router;
+module.exports = router;  
