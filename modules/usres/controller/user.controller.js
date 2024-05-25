@@ -1,6 +1,7 @@
 var bcrypt = require('bcryptjs');
 var jwt = require('jsonwebtoken');
 const { userModel } = require('../../../DB/model/user.model');
+const { ProductModel } = require('../../../DB/model/Product.model');
 
 const signup = async (req, res) => {
     const { userName, email, password} = req.body;
@@ -40,5 +41,16 @@ const signin = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+const addProduct = async (req, res) => {
+    try {
+      const productData = req.body;
+      productData.user = req.user._id;  
+      const product = new ProductModel(productData);
+      await product.save();
+      res.status(201).json(product);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  };
 
-module.exports = { signin, signup };
+module.exports = { signin, signup,addProduct };
