@@ -1,0 +1,72 @@
+// to get Product Data 
+  <script>
+        // Function to convert HTML table to JSON array
+        function tableToJson(tableId) {
+            var table = document.getElementById(tableId);
+            var jsonArray = [];
+            for (var i = 1, row; row = table.rows[i]; i++) {
+                var jsonObject = {};
+                jsonObject["itemNumber"] = row.cells[0].innerText.trim();
+                jsonObject["itemName"] = row.cells[1].innerText.trim();
+                jsonObject["cost"] = parseFloat(row.cells[2].innerText.trim());
+                jsonObject["barcode"] = row.cells[3].innerText.trim();
+                jsonObject["currentBalance"] = parseFloat(row.cells[4].innerText.trim());
+                jsonObject["category"] = row.cells[5].innerText.trim();
+
+                // Parse unit barcodes
+                var unitBarcodesText = row.cells[6].innerText.trim();
+                var containers = {};
+                if (unitBarcodesText) {
+                    var containerEntries = unitBarcodesText.split(/\s*<br\/>\s*/);
+                    containerEntries.forEach(function(entry) {
+                        var parts = entry.split(/\s*:\s*/);
+                        var containerType = parts[0].trim();
+                        var barcodes = parts[1] ? parts[1].split(/\s+/) : [];
+                        containers[containerType] = {
+                            barcodes: barcodes,
+                            sellPrice: null // Placeholder, will be set next
+                        };
+                    });
+                }
+
+                // Parse unit sell prices
+                var sellPriceText = row.cells[7].innerText.trim();
+                var sellPriceEntries = sellPriceText.split(/\s+/);
+                for (var j = 0; j < sellPriceEntries.length; j += 3) {
+                    var containerType = sellPriceEntries[j];
+                    var price = parseFloat(sellPriceEntries[j + 1]);
+                    if (containers[containerType]) {
+                        containers[containerType].sellPrice = price;
+                    } else {
+                        containers[containerType] = {
+                            barcodes: [],
+                            sellPrice: price
+                        };
+                    }
+                }
+
+                jsonObject["containers"] = containers;
+                jsonArray.push(jsonObject);
+            }
+            return jsonArray;
+        }
+
+        // Wait until the DOM is fully loaded
+        document.addEventListener("DOMContentLoaded", function() {
+            var tableId = "tablesorter-demo";
+            var jsonArray = tableToJson(tableId);
+            console.log(jsonArray);
+        });
+    </script>
+eg: 
+<tr class="header">
+  <td>الرقم</td>
+  <td>الاسم</td>
+  <td>التكلفة</td>
+  <td>باركود</td>
+  <td>الرصيد الحالي</td>
+  <td>التصنيف</td>
+  <td>باركود الوحدات</td>
+  <td>مفرق</td>
+</tr>
+//////////////////////////////////////////////////////////////////////////////////////////////

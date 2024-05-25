@@ -5,10 +5,11 @@ const { ProductModel } = require('../../../DB/model/Product.model');
 
 function normalizeProductData(product) {
     return {
-      itemName: product.itemName || '',
-      printedName: product.printedName || 'x',
-      mainBarcode: product.barcode || '',
-      mainContainer: Object.keys(product.containers)[0]|| '',
+        itemNumber:product.itemNumber || '999999',
+      itemName: product.itemName || 'x',
+      printedName: product.printedName || ' ',
+      mainBarcode: product.barcode || 'x',
+      mainContainer: Object.keys(product.containers)[0]|| 'x',
       currentCostPrice: product.cost || 0,
       initialPrice:  0,
       currentStock: product.currentBalance || 0,
@@ -16,7 +17,7 @@ function normalizeProductData(product) {
       tax:  0,
       taxExempt:  false,
       containers: Object.entries(product.containers).map(([key, value]) => ({
-        name: key,
+        name: key ||'x',
         price: value.sellPrice || 0,
         quantity:  0,
         barcodes: (value.barcodes || []).map(code => ({ code }))
@@ -76,7 +77,6 @@ const addProduct = async (req, res) => {
   };
   const addProductsArray = async (req, res) => {
     try {
-        console.log(req.body);
             const {products} = req.body;
             const normalizedProducts = products.map(normalizeProductData)
             await ProductModel.insertMany(normalizedProducts);
@@ -85,5 +85,29 @@ const addProduct = async (req, res) => {
       res.status(400).json({ message: error.message });
     }
   };
+  const extractContainers = async (req, res) => {
+    if (!req.file) {
+      return res.status(400).send('No file uploaded.');
+    }
+  
+    // Read the Excel file from buffer
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+  
+    // Convert the sheet to JSON
+    const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+  
+    // Assuming the first row contains the headers
+    const headers = jsonData[0];
+  
+    // Finding the indices of the container names in the headers
+    const containerHeaders = headers.filter(header => header.startsWith('عدد الوحدات'));
+  
+    // Extract container names from the headers
+    const containerNames = containerHeaders.map(header => header.replace('عدد الوحدات ', ''));
+  
+    res.json({ containerNames });
+  };
  
-module.exports = {addProductsArray, signin, signup,addProduct };
+module.exports = {extractContainers,addProductsArray, signin, signup,addProduct };

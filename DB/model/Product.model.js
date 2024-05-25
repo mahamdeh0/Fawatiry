@@ -13,6 +13,7 @@ const ContainerSchema = new mongoose.Schema({
 });
 
 const ProductSchema = new mongoose.Schema({
+  itemNumber:{ type: Number, required: true },
   mainBarcode :{ type: String, required: true },
   itemName: { type: String, required: true },
   printedName: { type: String, required: true }, 
