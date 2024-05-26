@@ -1,28 +1,30 @@
 const jwt = require('jsonwebtoken');
 const { userModel } = require('../DB/model/user.model');
 
-
-const auth =  ()=>{
-
-    try{
-
-        return async (req,res,next)=>{
-
-            const {token}= req.headers;
-            const decoded = jwt.verify(token,process.env.TokenSignature); 
+const auth = () => {
+    return async (req, res, next) => {
+        try {
+            const token = req.headers.token;
+            if (!token) {
+                return res.status(401).json({ message: 'Authorization token is missing' });
+            }
+            
+            const decoded = jwt.verify(token, process.env.TokenSignature);
             const user = await userModel.findById(decoded.id).select('_id');
-            req.user=user;
+            
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            
+            req.user = user;
             next();
-        
-    
-    }
+        } catch (error) {
+            if (error.name === 'JsonWebTokenError') {
+                return res.status(401).json({ message: 'Invalid token' });
+            }
+            res.status(500).json({ message: 'Server error', error: error.message });
+        }
+    };
+};
 
-
-    }catch(error){
-        
-        res.json({message:"error",error});
-    }
-
- }
-
-module.exports=auth;
+module.exports = auth;

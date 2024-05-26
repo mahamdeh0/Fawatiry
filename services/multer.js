@@ -19,7 +19,7 @@ function myMulter(allowedTypes) {
     }
   }
 
-  return multer({ storage, fileFilter }).single('file');
+  return multer({ storage, fileFilter }).single('file')
 }
 
 
