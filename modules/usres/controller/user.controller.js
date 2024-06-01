@@ -2,6 +2,7 @@ var bcrypt = require('bcryptjs');
 var jwt = require('jsonwebtoken');
 const { userModel } = require('../../../DB/model/user.model');
 const { ProductModel } = require('../../../DB/model/Product.model');
+const { InvoiceModel } = require('../../../DB/model/Invoice.model');
 const xlsx = require('xlsx');
 const fs = require('fs');
 const { containerModel } = require('../../../DB/model/Containers.model');
@@ -153,8 +154,6 @@ const addProductsArray = async (req, res) => {
     }
 };
 
-
-  
 async function initDataBaseFromHisabatiXlsx(req, res) {
     if (!req.file) {
         return res.status(400).send('No file uploaded.');
@@ -246,6 +245,7 @@ async function initDataBaseFromHisabatiXlsx(req, res) {
         return res.json({ savedContainers, message: 'No new categories to add.' });
     }
 };
+
 const getProducts = async (req,res)=>{
    try {
     const products = await ProductModel.find({});
@@ -255,7 +255,54 @@ const getProducts = async (req,res)=>{
     res.status(500).json({msg:error})
    }
    
-}
+};
+
+const createInvoice = async (req, res) => {
+    try {
+        const { products, discount } = req.body;
+        const userId = req.user._id;
+
+        let totalAmount = 0;
+        const productDetails = await Promise.all(products.map(async (prod) => {
+            const product = await ProductModel.findById(prod.productId);
+            totalAmount += product.currentCostPrice * prod.quantity;
+            return {
+                product: product._id,
+                quantity: prod.quantity,
+                price: product.currentCostPrice
+            };
+        }));
+
+        const finalAmount = totalAmount - discount;
+
+        // Generate the next invoice number
+        const lastInvoice = await InvoiceModel.findOne().sort({ invoiceNumber: -1 });
+        const nextInvoiceNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
+
+        const newInvoice = new InvoiceModel({
+            user: userId,
+            products: productDetails,
+            totalAmount,
+            discount,
+            finalAmount,
+            invoiceNumber: nextInvoiceNumber
+        });
+
+        await newInvoice.save();
+        res.status(201).json(newInvoice);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+const getInvoices = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const invoices = await InvoiceModel.find({ user: userId }).populate('products.product');
+        res.status(200).json(invoices);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
 
   
-module.exports = {getProducts, initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
+module.exports = {getProducts,createInvoice, getInvoices,initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
