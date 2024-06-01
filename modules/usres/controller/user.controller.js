@@ -84,20 +84,67 @@ const addProductsArray = async (req, res) => {
     try {
         const { products } = req.body;
 
-        for (const product of products) {
-            const { itemName, containers } = product;
+        // Fetch all products that need to be updated
+        const productNames = products.map(product => product.itemName);
+        const existingProducts = await ProductModel.find({ itemName: { $in: productNames } });
 
-            for (const container of containers) {
-                const { containerType, barcodes } = container;
-                console.log("here")
-                await ProductModel.updateOne(
-                    { itemName, 'containers.name': containerType },
-                    {
-                        $addToSet: { 'containers.$.barcodes': { $each: barcodes.map(code => ({ code })) } }
+        // Create a map of itemName to product for easy lookup
+        const productMap = new Map();
+        existingProducts.forEach(product => productMap.set(product.itemName, product));
+
+        // Update containers locally
+        products.forEach(product => {
+            const { itemName, containers } = product;
+            const existingProduct = productMap.get(itemName);
+
+            if (existingProduct) {
+                containers.forEach(container => {
+                    const { containerType, barcodes } = container;
+                    let existingContainer = existingProduct.containers.find(c => c.name === containerType);
+
+                    if (existingContainer) {
+                        // Add unique barcodes to existing container
+                        const existingBarcodes = existingContainer.barcodes.map(b => b.code);
+                        const newBarcodes = barcodes.filter(code => !existingBarcodes.includes(code)).map(code => ({ code }));
+                        existingContainer.barcodes.push(...newBarcodes);
+                    } else {
+                        // Add new container with barcodes
+                        existingProduct.containers.push({
+                            name: containerType,
+                            barcodes: barcodes.map(code => ({ code }))
+                        });
                     }
-                );
+                });
+            } else {
+                // Create new product if it doesn't exist
+                const newProduct = {
+                    itemName,
+                    containers: containers.map(container => ({
+                        name: container.containerType,
+                        barcodes: container.barcodes.map(code => ({ code }))
+                    }))
+                };
+                productMap.set(itemName, newProduct);
             }
-        }
+        });
+
+        // Convert map back to array
+        const updatedProducts = Array.from(productMap.values());
+
+        // Perform bulk update
+        const bulkOps = updatedProducts.map(product => ({
+            updateOne: {
+                filter: { itemName: product.itemName },
+                update: {
+                    $set: {
+                        containers: product.containers
+                    }
+                },
+                upsert: true
+            }
+        }));
+
+        await ProductModel.bulkWrite(bulkOps);
 
         res.json({ msg: "Products updated successfully" });
     } catch (error) {
@@ -105,6 +152,7 @@ const addProductsArray = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
 
   
 async function initDataBaseFromHisabatiXlsx(req, res) {
@@ -189,8 +237,7 @@ async function initDataBaseFromHisabatiXlsx(req, res) {
         });
     })
     const savedProducts = await ProductModel.insertMany(products);
-       
-   // Save the new categories
+
     if (newCategories.length > 0) {
         const newCategoryModel = new categoryModel({ categorys: newCategories, user: req.user });
         const savedCategories = await newCategoryModel.save();
@@ -199,6 +246,16 @@ async function initDataBaseFromHisabatiXlsx(req, res) {
         return res.json({ savedContainers, message: 'No new categories to add.' });
     }
 };
+const getProducts = async (req,res)=>{
+   try {
+    const products = await ProductModel.find({});
+    res.status(200).json(products)
+   } catch (error) {
+    console.log()
+    res.status(500).json({msg:error})
+   }
+   
+}
 
   
-module.exports = { initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
+module.exports = {getProducts, initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
