@@ -263,7 +263,7 @@ const createInvoice = async (req, res) => {
     try {
         const { products, name, status, paymentType, invoiceDiscount, tax, totalAmount, finalAmount, customerId } = req.body;
         const userId = req.user._id;
-
+        // if customerId = 1 that means its a noraml invoice مش ذمم يعني
         const newInvoice = new InvoiceModel({
             user: userId,
             name,
@@ -278,7 +278,7 @@ const createInvoice = async (req, res) => {
 
         const savedInvoice = await newInvoice.save();
 
-        if (status !== 'paid') {
+        if (paymentType == 'ذمم' && customerId !=1) {
             const customer = await CustomerModel.findById(customerId);
             if (customer) {
                 customer.invoices.push(savedInvoice._id);
@@ -321,7 +321,7 @@ const storeUnpaidInvoicesForCustomer = async (req, res) => {
     try {
         const { customerId } = req.params;
 
-        const unpaidInvoices = await InvoiceModel.find({ user: req.user._id, status: { $ne: 'paid' } });
+        const unpaidInvoices = await InvoiceModel.find({ user: req.user._id, status: { $ne: 'مدفوع' } });
 
         const customer = await CustomerModel.findById(customerId);
 
@@ -343,6 +343,35 @@ const storeUnpaidInvoicesForCustomer = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+const addCustomer = async(req, res) => {
+    try {
+        const {  name, location, phone, notes, invoices } = req.body;
+        const user = req.user;
+        // Create a new customer document
+        const newCustomer = new CustomerModel({
+            user,
+            name,
+            location,
+            phone,
+            notes,
+            invoices
+        });
 
-  
-module.exports = {getProducts,createInvoice, storeUnpaidInvoicesForCustomer,getInvoices,initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
+        // Save the customer document to the database
+        await newCustomer.save();
+
+        res.status(201).json({ message: 'Customer added successfully', customer: newCustomer });
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding customer', error });
+    }
+}
+  const getCustomers= async(req,res)=>{
+try {
+    const user=req.user;
+    const customers = await CustomerModel.find({ user })
+    res.status(200).json(customers);
+} catch (error) {
+    res.status(500).json({ message: 'Error retrieving customers', error });
+}
+  }
+module.exports = {getCustomers,addCustomer,getProducts,createInvoice, storeUnpaidInvoicesForCustomer,getInvoices,initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
