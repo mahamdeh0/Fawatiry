@@ -7,6 +7,8 @@ const xlsx = require('xlsx');
 const fs = require('fs');
 const { containerModel } = require('../../../DB/model/Containers.model');
 const { categoryModel } = require('../../../DB/model/Category.model');
+const { CustomerModel } = require('../../../DB/model/Customer.model');
+
 function normalizeProductData(product) {
     return {
         itemNumber:product.itemNumber || '999999',
