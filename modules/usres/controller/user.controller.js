@@ -259,46 +259,50 @@ const getProducts = async (req,res)=>{
 
 const createInvoice = async (req, res) => {
     try {
-        const { products, discount } = req.body;
+        const { products, name, status, paymentType, invoiceDiscount, tax, totalAmount,finalAmount } = req.body;
         const userId = req.user._id;
 
-        let totalAmount = 0;
-        const productDetails = await Promise.all(products.map(async (prod) => {
-            const product = await ProductModel.findById(prod.productId);
-            totalAmount += product.currentCostPrice * prod.quantity;
-            return {
-                product: product._id,
-                quantity: prod.quantity,
-                price: product.currentCostPrice
-            };
-        }));
-
-        const finalAmount = totalAmount - discount;
-
-        // Generate the next invoice number
-        const lastInvoice = await InvoiceModel.findOne().sort({ invoiceNumber: -1 });
-        const nextInvoiceNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
+            console.log({ products, name, status, paymentType, invoiceDiscount, tax,totalAmount })
 
         const newInvoice = new InvoiceModel({
             user: userId,
-            products: productDetails,
+            name,
+            status,
+            paymentType,
+            products: products,
             totalAmount,
-            discount,
-            finalAmount,
-            invoiceNumber: nextInvoiceNumber
+            invoiceDiscount,
+            tax,
+            finalAmount:finalAmount,
+            
         });
 
         await newInvoice.save();
         res.status(201).json(newInvoice);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.log(error)
+        res.status(400).json({ message: error });
     }
 };
 const getInvoices = async (req, res) => {
     try {
         const userId = req.user._id;
-        const invoices = await InvoiceModel.find({ user: userId }).populate('products.product');
-        res.status(200).json(invoices);
+        
+     
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Query invoices created today
+        const invoices = await InvoiceModel.find({
+            user: userId,
+            createdAt: { $gte: startOfDay, $lt: endOfDay }
+        });
+        const lastInvoice = await InvoiceModel.findOne().sort({ invoiceNumber: -1 });
+        const lastInvoiceNumber = lastInvoice ? lastInvoice.invoiceNumber : 0;
+
+        res.status(200).json({ invoices, lastInvoiceNumber });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
