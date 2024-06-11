@@ -1,5 +1,5 @@
 const auth = require('../../middlewear/auth');
-const {signup,signin,getInvoices,createInvoice,addProduct,addProductsArray ,initDataBaseFromHisabatiXlsx,getProducts} = require('./controller/user.controller');
+const {signup,signin,getInvoices,createInvoice,storeUnpaidInvoicesForCustomer,addProduct,addProductsArray ,initDataBaseFromHisabatiXlsx,getProducts} = require('./controller/user.controller');
 const router = require('express').Router();
 const { myMulter, HME } = require('../../services/multer');
 
@@ -12,5 +12,7 @@ router.post('/upload', auth(),myMulter(['application/vnd.openxmlformats-officedo
 
 router.post('/invoice',auth(), createInvoice);
 router.get('/getinvoice',auth(), getInvoices);
+
+router.post('/customer/:customerId/storeUnpaidInvoices', auth(), storeUnpaidInvoicesForCustomer);
 
 module.exports = router;  

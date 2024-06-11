@@ -259,10 +259,8 @@ const getProducts = async (req,res)=>{
 
 const createInvoice = async (req, res) => {
     try {
-        const { products, name, status, paymentType, invoiceDiscount, tax, totalAmount,finalAmount } = req.body;
+        const { products, name, status, paymentType, invoiceDiscount, tax, totalAmount, finalAmount, customerId } = req.body;
         const userId = req.user._id;
-
-            console.log({ products, name, status, paymentType, invoiceDiscount, tax,totalAmount })
 
         const newInvoice = new InvoiceModel({
             user: userId,
@@ -273,17 +271,26 @@ const createInvoice = async (req, res) => {
             totalAmount,
             invoiceDiscount,
             tax,
-            finalAmount:finalAmount,
-            
+            finalAmount,
         });
 
-        await newInvoice.save();
-        res.status(201).json(newInvoice);
+        const savedInvoice = await newInvoice.save();
+
+        if (status !== 'paid') {
+            const customer = await CustomerModel.findById(customerId);
+            if (customer) {
+                customer.invoices.push(savedInvoice._id);
+                await customer.save();
+            }
+        }
+
+        res.status(201).json(savedInvoice);
     } catch (error) {
-        console.log(error)
-        res.status(400).json({ message: error });
+        console.error(error);
+        res.status(400).json({ message: error.message });
     }
 };
+
 const getInvoices = async (req, res) => {
     try {
         const userId = req.user._id;
@@ -308,5 +315,32 @@ const getInvoices = async (req, res) => {
     }
 };
 
+const storeUnpaidInvoicesForCustomer = async (req, res) => {
+    try {
+        const { customerId } = req.params;
+
+        const unpaidInvoices = await InvoiceModel.find({ user: req.user._id, status: { $ne: 'paid' } });
+
+        const customer = await CustomerModel.findById(customerId);
+
+        if (!customer) {
+            return res.status(404).json({ message: "Customer not found" });
+        }
+
+        unpaidInvoices.forEach(invoice => {
+            if (!customer.invoices.includes(invoice._id)) {
+                customer.invoices.push(invoice._id);
+            }
+        });
+
+        await customer.save();
+
+        res.status(200).json({ message: "Unpaid invoices stored for customer", customer });
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({ message: error.message });
+    }
+};
+
   
-module.exports = {getProducts,createInvoice, getInvoices,initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
+module.exports = {getProducts,createInvoice, storeUnpaidInvoicesForCustomer,getInvoices,initDataBaseFromHisabatiXlsx,addProductsArray, signin, signup,addProduct };
